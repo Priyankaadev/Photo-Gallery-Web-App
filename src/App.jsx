@@ -1,5 +1,4 @@
-import { useState } from "react";
-import "./App.css";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import FavouritesPanel from "./components/FavouritesPanel";
 import useFetchPhotos from "./hooks/useFetchPhotos";
 import SearchBar from "./components/SearchBar";
@@ -7,19 +6,24 @@ import { FaHeart } from "react-icons/fa";
 import PhotoCard from "./components/PhotoCard";
 import favouritesReducer from "./hooks/favouritesReducer";
 
+
+const STORAGE_KEY = 'picsnap-favourites'
+
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const {photos, loading, error} = useFetchPhotos()
- const [favourites, dispatch] = useReducer(favouritesReducer, [])
+ const [favourites, dispatch] = useReducer(
+  favouritesReducer,
+  [],
+  () => {
+    const stored = localStorage.getItem('picsnap-favourites')
+    return stored ? JSON.parse(stored) : []
+  }
+)
 
  const handleSearch = (e) => setSearchQuery(e.target.value);
- useEffect(() => {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    dispatch({ type: 'LOAD', payload: JSON.parse(stored) })
-  }
-}, [])
+
 
 useEffect(() => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(favourites))
@@ -29,13 +33,14 @@ const handleToggle = useCallback((photo) => {
   dispatch({ type: 'TOGGLE', payload: photo })
 }, [])
 
-  const filteredPhotos = photos.filter(p =>
-  p.author.toLowerCase().includes(searchQuery.toLowerCase())
-)
+const filteredPhotos = useMemo(() => {
+  return photos.filter(p =>
+    p.author.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+}, [photos, searchQuery])
+
   return(
        <div className="min-h-screen bg-gray-50">
-
-    
       <header className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 py-3">
@@ -82,7 +87,6 @@ const handleToggle = useCallback((photo) => {
   </div>
 )}
 
-     
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="flex items-center justify-between mb-5 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate pr-4">
