@@ -5,22 +5,30 @@ import useFetchPhotos from "./hooks/useFetchPhotos";
 import SearchBar from "./components/SearchBar";
 import { FaHeart } from "react-icons/fa";
 import PhotoCard from "./components/PhotoCard";
+import favouritesReducer from "./hooks/favouritesReducer";
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [favourites, setFavourites] = useState([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const {photos, loading, error} = useFetchPhotos()
+ const [favourites, dispatch] = useReducer(favouritesReducer, [])
 
  const handleSearch = (e) => setSearchQuery(e.target.value);
-
- const handleToggle = (photo) => {
-    setFavourites(prev =>
-      prev.some(f => f.id === photo.id)
-        ? prev.filter(f => f.id !== photo.id)
-        : [...prev, photo]
-    )
+ useEffect(() => {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored) {
+    dispatch({ type: 'LOAD', payload: JSON.parse(stored) })
   }
+}, [])
+
+useEffect(() => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(favourites))
+}, [favourites])
+
+const handleToggle = useCallback((photo) => {
+  dispatch({ type: 'TOGGLE', payload: photo })
+}, [])
+
   const filteredPhotos = photos.filter(p =>
   p.author.toLowerCase().includes(searchQuery.toLowerCase())
 )
